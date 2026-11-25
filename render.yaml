@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: albergue-api
+    runtime: docker
+    plan: free
+    region: virginia
+    branch: main
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CORS_ORIGIN
+        value: https://albergueluisaaron.web.app,https://albergueluisaaron.firebaseapp.com
+      # Secretos: se capturan en el panel de Render (sync: false = no se guardan en el repo).
+      - key: DATABASE_URL
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT
+        sync: false
+      - key: ADMIN_EMAILS
+        sync: false
+      - key: ARCHIVOS_SECRET
+        sync: false

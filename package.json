@@ -1,0 +1,26 @@
+{
+  "name": "albergue-api",
+  "version": "1.0.0",
+  "description": "API del sistema del Albergue Luis Aarón (reconstruida para Neon + Render)",
+  "type": "module",
+  "main": "src/index.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "postinstall": "prisma generate",
+    "prisma:generate": "prisma generate",
+    "seed:catalogos": "node prisma/seed-catalogos.js"
+  },
+  "dependencies": {
+    "@prisma/client": "6.19.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "firebase-admin": "^13.4.0",
+    "multer": "^2.0.2",
+    "prisma": "6.19.3"
+  }
+}

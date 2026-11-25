@@ -1,0 +1,427 @@
+// Esquema reconstruido a partir de la base de datos real (Neon, Postgres 18).
+// Los nombres de tablas/columnas se conservan tal cual los espera el frontend.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Sexo {
+  M
+  F
+  OTRO
+}
+
+enum TipoBeneficiario {
+  NINO_ADOLESCENTE
+  MAMA_PAPA
+  HERMANO
+  OTRO
+}
+
+enum EstatusBeneficiario {
+  ACTIVO
+  INACTIVO
+  EGRESADO
+}
+
+enum TipoDonacion {
+  EFECTIVO
+  ESPECIE
+  SERVICIO
+}
+
+enum FormaPago {
+  EFECTIVO
+  TRANSFERENCIA
+  CHEQUE
+  TARJETA
+  OTRO
+}
+
+enum TipoDonante {
+  PARTICULAR
+  EMPRESA
+  FUNDACION
+  GOBIERNO
+}
+
+enum TipoMovimiento {
+  ENTRADA
+  SALIDA
+}
+
+model User {
+  id_user   Int     @id @default(autoincrement())
+  username  String  @db.VarChar(50)
+  lastNamePaternal String? @db.VarChar(50)
+  lastNameMaternal String? @db.VarChar(50)
+  email     String  @unique @db.VarChar(90)
+  level     Int
+  cellPhone String  @db.VarChar(20)
+  registry  DateTime @db.Timestamp(3)
+  active    String  @db.Char(1)
+  photo     String? @db.VarChar(255)
+
+  apoyos                 Apoyo[]
+  movimientosInventario  MovimientoInventario[]
+  movimientosAlimentos   MovimientoAlimento[]
+  auditoria              Auditoria[]
+
+  @@map("users")
+}
+
+model Archivo {
+  id             Int      @id @default(autoincrement())
+  nombreOriginal String   @db.VarChar(255)
+  ruta           String   @db.VarChar(255)
+  mimeType       String   @db.VarChar(100)
+  tamano         Int
+  creadoEn       DateTime @default(now()) @db.Timestamp(3)
+  contenido      Bytes?
+
+  apoyos     Apoyo[]
+  donaciones Donacion[]
+
+  @@map("archivos")
+}
+
+model Municipio {
+  id     Int     @id @default(autoincrement())
+  nombre String  @db.VarChar(100)
+  estado String? @db.VarChar(100)
+
+  localidades   Localidad[]
+  beneficiarios Beneficiario[]
+
+  @@map("municipios")
+}
+
+model Localidad {
+  id           Int    @id @default(autoincrement())
+  id_municipio Int
+  nombre       String @db.VarChar(100)
+
+  municipio     Municipio      @relation(fields: [id_municipio], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  beneficiarios Beneficiario[]
+
+  @@map("localidades")
+}
+
+model Hospital {
+  id        Int     @id @default(autoincrement())
+  nombre    String  @db.VarChar(150)
+  direccion String? @db.VarChar(255)
+  activo    Boolean @default(true)
+
+  beneficiarios Beneficiario[]
+  estancias     Estancia[]
+
+  @@map("hospitales")
+}
+
+model Habitacion {
+  id     Int     @id @default(autoincrement())
+  nombre String  @unique @db.VarChar(50)
+  activa Boolean @default(true)
+
+  camas Cama[]
+
+  @@map("habitaciones")
+}
+
+model Cama {
+  id            Int     @id @default(autoincrement())
+  id_habitacion Int
+  nombre        String  @db.VarChar(50)
+  activa        Boolean @default(true)
+
+  habitacion Habitacion @relation(fields: [id_habitacion], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  estancias  Estancia[]
+
+  @@unique([id_habitacion, nombre])
+  @@map("camas")
+}
+
+model Beneficiario {
+  id                      Int                 @id @default(autoincrement())
+  folio                   String              @unique @db.VarChar(30)
+  nombreCompleto          String              @db.VarChar(150)
+  fechaNacimiento         DateTime?           @db.Date
+  sexo                    Sexo?
+  id_municipio            Int?
+  id_localidad            Int?
+  tipo                    TipoBeneficiario
+  id_hospital             Int?
+  id_paciente_relacionado Int?
+  telefono                String?             @db.VarChar(20)
+  fechaIngreso            DateTime            @db.Date
+  estatus                 EstatusBeneficiario @default(ACTIVO)
+  observaciones           String?
+  creadoEn                DateTime            @default(now()) @db.Timestamp(3)
+  curp                    String?             @unique @db.VarChar(18)
+
+  municipio           Municipio? @relation(fields: [id_municipio], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  localidad           Localidad? @relation(fields: [id_localidad], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  hospital            Hospital?  @relation(fields: [id_hospital], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  pacienteRelacionado Beneficiario?  @relation("Familia", fields: [id_paciente_relacionado], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  familiares          Beneficiario[] @relation("Familia")
+
+  contactos     ContactoEmergencia[]
+  diagnosticos  BeneficiarioDiagnostico[]
+  estancias     Estancia[]              @relation("EstanciaPaciente")
+  acompanamientos Estancia[]            @relation("EstanciaAcompanante")
+  apoyos        Apoyo[]
+
+  @@map("beneficiarios")
+}
+
+model ContactoEmergencia {
+  id              Int     @id @default(autoincrement())
+  id_beneficiario Int
+  nombre          String  @db.VarChar(150)
+  telefono        String  @db.VarChar(20)
+  parentesco      String? @db.VarChar(50)
+
+  beneficiario Beneficiario @relation(fields: [id_beneficiario], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  estancias    Estancia[]
+
+  @@map("contactos_emergencia")
+}
+
+model BeneficiarioDiagnostico {
+  id              Int      @id @default(autoincrement())
+  id_beneficiario Int
+  diagnostico     String
+  fecha           DateTime @default(now()) @db.Timestamp(3)
+
+  beneficiario Beneficiario @relation(fields: [id_beneficiario], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("beneficiario_diagnosticos")
+}
+
+model Estancia {
+  id                    Int       @id @default(autoincrement())
+  id_paciente           Int
+  id_acompanante        Int?
+  fechaEntrada          DateTime  @db.Timestamp(3)
+  fechaSalida           DateTime? @db.Timestamp(3)
+  motivo                String?
+  id_hospital           Int?
+  id_cama               Int?
+  id_contacto_emergencia Int?
+  creadoEn              DateTime  @default(now()) @db.Timestamp(3)
+
+  paciente          Beneficiario       @relation("EstanciaPaciente", fields: [id_paciente], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  acompanante       Beneficiario?      @relation("EstanciaAcompanante", fields: [id_acompanante], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  hospital          Hospital?          @relation(fields: [id_hospital], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  cama              Cama?              @relation(fields: [id_cama], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  contactoEmergencia ContactoEmergencia? @relation(fields: [id_contacto_emergencia], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@map("estancias")
+}
+
+model TipoApoyo {
+  id     Int     @id @default(autoincrement())
+  nombre String  @unique @db.VarChar(60)
+  activo Boolean @default(true)
+
+  apoyos Apoyo[]
+
+  @@map("tipos_apoyo")
+}
+
+model Apoyo {
+  id               Int      @id @default(autoincrement())
+  fecha            DateTime @db.Date
+  id_beneficiario  Int
+  id_tipo_apoyo    Int
+  descripcion      String
+  cantidad         Decimal  @default(1) @db.Decimal(12, 2)
+  costoEstimado    Decimal? @db.Decimal(12, 2)
+  proporcionadoPor String?  @db.VarChar(150)
+  id_user          Int?
+  id_archivo       Int?
+  observaciones    String?
+  activo           Boolean  @default(true)
+
+  beneficiario Beneficiario @relation(fields: [id_beneficiario], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  tipoApoyo    TipoApoyo    @relation(fields: [id_tipo_apoyo], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  user         User?        @relation(fields: [id_user], references: [id_user], onDelete: SetNull, onUpdate: Cascade)
+  archivo      Archivo?     @relation(fields: [id_archivo], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  movimientos MovimientoInventario[]
+
+  @@map("apoyos")
+}
+
+model Donante {
+  id                 Int         @id @default(autoincrement())
+  nombre             String      @db.VarChar(150)
+  tipo               TipoDonante
+  contacto           String?     @db.VarChar(150)
+  telefono           String?     @db.VarChar(20)
+  correo             String?     @db.VarChar(90)
+  rfc                String?     @db.VarChar(13)
+  recurrente         Boolean     @default(false)
+  tipoApoyoHabitual  String?     @db.VarChar(150)
+  creadoEn           DateTime    @default(now()) @db.Timestamp(3)
+  activo             Boolean     @default(true)
+
+  donaciones Donacion[]
+
+  @@map("donantes")
+}
+
+model DestinoDonacion {
+  id     Int     @id @default(autoincrement())
+  nombre String  @unique @db.VarChar(60)
+  activo Boolean @default(true)
+
+  donaciones Donacion[]
+
+  @@map("destinos_donacion")
+}
+
+model Donacion {
+  id             Int          @id @default(autoincrement())
+  fecha          DateTime     @db.Date
+  id_donante     Int
+  tipo           TipoDonacion
+  monto          Decimal?     @db.Decimal(12, 2)
+  valorEstimado  Decimal?     @db.Decimal(12, 2)
+  id_destino     Int?
+  formaPago      FormaPago?
+  folioRecibo    String?      @db.VarChar(50)
+  id_archivo     Int?
+  observaciones  String?
+  activo         Boolean      @default(true)
+
+  donante  Donante          @relation(fields: [id_donante], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  destino  DestinoDonacion? @relation(fields: [id_destino], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  archivo  Archivo?         @relation(fields: [id_archivo], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  detalles DonacionDetalleEspecie[]
+  movimientos MovimientoInventario[]
+
+  @@map("donaciones")
+}
+
+model DonacionDetalleEspecie {
+  id             Int     @id @default(autoincrement())
+  id_donacion    Int
+  descripcion    String  @db.VarChar(255)
+  cantidad       Decimal @db.Decimal(12, 2)
+  id_medicamento Int?
+
+  donacion    Donacion    @relation(fields: [id_donacion], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  medicamento Medicamento? @relation(fields: [id_medicamento], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@map("donacion_detalle_especie")
+}
+
+model Medicamento {
+  id           Int     @id @default(autoincrement())
+  nombre       String  @db.VarChar(150)
+  presentacion String? @db.VarChar(100)
+  unidad       String? @db.VarChar(30)
+  activo       Boolean @default(true)
+
+  lotes       MedicamentoLote[]
+  movimientos MovimientoInventario[]
+  detalles    DonacionDetalleEspecie[]
+
+  @@map("medicamentos")
+}
+
+model MedicamentoLote {
+  id             Int       @id @default(autoincrement())
+  id_medicamento Int
+  lote           String    @db.VarChar(50)
+  caducidad      DateTime? @db.Date
+
+  medicamento Medicamento            @relation(fields: [id_medicamento], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  movimientos MovimientoInventario[]
+
+  @@map("medicamento_lotes")
+}
+
+model MovimientoInventario {
+  id             Int            @id @default(autoincrement())
+  id_medicamento Int
+  id_lote        Int?
+  tipo           TipoMovimiento
+  cantidad       Int
+  fecha          DateTime       @default(now()) @db.Timestamp(3)
+  motivo         String?
+  id_apoyo       Int?
+  id_donacion    Int?
+  id_user        Int?
+
+  medicamento Medicamento     @relation(fields: [id_medicamento], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  lote        MedicamentoLote? @relation(fields: [id_lote], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  apoyo      Apoyo?           @relation(fields: [id_apoyo], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  donacion   Donacion?        @relation(fields: [id_donacion], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  user       User?            @relation(fields: [id_user], references: [id_user], onDelete: SetNull, onUpdate: Cascade)
+
+  @@map("movimientos_inventario")
+}
+
+model Alimento {
+  id           Int     @id @default(autoincrement())
+  nombre       String  @db.VarChar(150)
+  presentacion String? @db.VarChar(100)
+  unidad       String? @db.VarChar(30)
+  activo       Boolean @default(true)
+
+  lotes       AlimentoLote[]
+  movimientos MovimientoAlimento[]
+
+  @@map("alimentos")
+}
+
+model AlimentoLote {
+  id          Int       @id @default(autoincrement())
+  id_alimento Int
+  lote        String    @db.VarChar(50)
+  caducidad   DateTime? @db.Date
+
+  alimento    Alimento             @relation(fields: [id_alimento], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  movimientos MovimientoAlimento[]
+
+  @@map("alimento_lotes")
+}
+
+model MovimientoAlimento {
+  id          Int            @id @default(autoincrement())
+  id_alimento Int
+  id_lote     Int?
+  tipo        TipoMovimiento
+  cantidad    Decimal        @db.Decimal(12, 2)
+  fecha       DateTime       @default(now()) @db.Timestamp(3)
+  motivo      String?
+  id_user     Int?
+
+  alimento Alimento      @relation(fields: [id_alimento], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  lote     AlimentoLote? @relation(fields: [id_lote], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  user     User?         @relation(fields: [id_user], references: [id_user], onDelete: SetNull, onUpdate: Cascade)
+
+  @@map("movimientos_alimentos")
+}
+
+model Auditoria {
+  id        Int      @id @default(autoincrement())
+  id_user   Int?
+  accion    String   @db.VarChar(30)
+  entidad   String   @db.VarChar(60)
+  entidadId Int?
+  detalle   String?
+  fecha     DateTime @default(now()) @db.Timestamp(3)
+
+  user User? @relation(fields: [id_user], references: [id_user], onDelete: SetNull, onUpdate: Cascade)
+
+  @@map("auditoria")
+}
