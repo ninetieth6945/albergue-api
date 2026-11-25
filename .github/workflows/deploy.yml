@@ -1,0 +1,23 @@
+name: desplegar en Render
+
+# Render no registra el webhook automáticamente cuando el servicio se crea por API,
+# así que este workflow dispara el deploy en cada push a main.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Disparar deploy
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: |
+          curl -sS --fail-with-body -X POST \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json" \
+            -d '{}' \
+            "https://api.render.com/v1/services/${{ vars.RENDER_SERVICE_ID || 'srv-dc34qt68bjmc73eirlcg' }}/deploys"

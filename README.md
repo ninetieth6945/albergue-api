@@ -172,12 +172,15 @@ GET    /auditoria?accion&entidad&entidadId&desde&hasta
 
 ## Despliegue en Render (gratis, sin tarjeta)
 
-El servicio ya está creado con el plan **Free** y el repositorio enlazado. No hay nada que
-volver a configurar; basta con:
+El servicio ya está creado con el plan **Free**. Para publicar cambios basta con:
 
 ```bash
-git push origin main        # Render reconstruye y despliega solo
+git push origin main
 ```
+
+El workflow `.github/workflows/deploy.yml` avisa a Render (con el secreto `RENDER_API_KEY`) para
+que reconstruya la imagen. También se puede lanzar a mano desde **Actions → desplegar en Render**,
+o desde el panel de Render con **Manual Deploy → Deploy latest commit**.
 
 Si se quiere recrear desde cero: **New → Blueprint**, elegir el repo y Render lee `render.yaml`.
 Las variables de entorno se capturan en **Environment** del servicio (valores en `.env.produccion`).
