@@ -4,6 +4,19 @@ API del sistema del **Albergue Luis Aarón**, reconstruida a partir del esquema 
 (Neon/PostgreSQL) y del contrato que consume el frontend (`AlbergueAncla`, React + Vite).
 Reemplaza al backend original (que no estaba publicado en GitHub).
 
+## Estado actual (desplegado)
+
+| Qué | Dónde |
+|---|---|
+| API en producción | <https://albergue-api.onrender.com> (`/healthz`) |
+| Frontend | <https://albergueluisaaron.web.app> |
+| Código de la API | <https://github.com/ninetieth6945/albergue-api> |
+| Panel de Render | <https://dashboard.render.com/web/srv-dc34qt68bjmc73eirlcg> |
+| Base de datos | Neon, proyecto `albergue`, rama `production`, base `neondb` |
+
+El despliegue de la API es automático: cada `git push` a `main` reconstruye la imagen.
+Los secretos viven solo en Render (archivo local de referencia: `.env.produccion`, ignorado por git).
+
 ## Arquitectura gratuita
 
 | Pieza | Servicio | Plan |
@@ -159,42 +172,34 @@ GET    /auditoria?accion&entidad&entidadId&desde&hasta
 
 ## Despliegue en Render (gratis, sin tarjeta)
 
-1. **Sube este directorio a un repositorio de GitHub** (privado o público):
-   ```bash
-   cd albergue-api
-   git init
-   git add .
-   git commit -m "API del albergue reconstruida"
-   git branch -M main
-   git remote add origin https://github.com/TU-USUARIO/albergue-api.git
-   git push -u origin main
-   ```
-   Crea antes el repositorio vacío en <https://github.com/new> (sin README ni .gitignore).
+El servicio ya está creado con el plan **Free** y el repositorio enlazado. No hay nada que
+volver a configurar; basta con:
 
-2. En Render: **New → Blueprint**, conecta el repositorio y elige la rama `main`.
-   Render lee `render.yaml` y crea el servicio `albergue-api` con Docker y health check `/healthz`.
+```bash
+git push origin main        # Render reconstruye y despliega solo
+```
 
-3. Captura los secretos cuando Render los pida:
-   - `DATABASE_URL`: la cadena **pooled** de Neon.
-   - `FIREBASE_SERVICE_ACCOUNT`: el JSON en una línea.
-   - `ADMIN_EMAILS`: tu correo.
-   - `ARCHIVOS_SECRET`: una cadena aleatoria larga (por ejemplo `openssl rand -hex 32`).
+Si se quiere recrear desde cero: **New → Blueprint**, elegir el repo y Render lee `render.yaml`.
+Las variables de entorno se capturan en **Environment** del servicio (valores en `.env.produccion`).
 
-4. Espera el primer deploy y comprueba:
-   `https://<servicio>.onrender.com/healthz` → `{"ok":true,...}`.
+### Frontend
 
-5. En el frontend, compila con la URL de Render y publica en Firebase:
-   ```bash
-   cd ../AlbergueAncla
-   VITE_API_URL="https://<servicio>.onrender.com" npm run build
-   firebase deploy --only hosting
-   ```
+El frontend guarda la dirección de la API en `AlbergueAncla/.env.production`
+(`VITE_API_URL=https://albergue-api.onrender.com`), así que basta con:
+
+```bash
+cd ../AlbergueAncla
+npm run build
+firebase deploy --only hosting
+```
 
 ### Evitar que Render duerma
 
-El plan Free duerme tras 15 minutos sin tráfico. Un monitor gratuito (UptimeRobot, cron-job.org)
-que haga `GET https://<servicio>.onrender.com/healthz` cada 10 minutos mantiene el servicio despierto:
-744 horas al mes, por debajo del límite de 750.
+El plan Free duerme tras 15 minutos sin tráfico. El workflow
+`.github/workflows/keep-alive.yml` hace `GET /healthz` cada 10 minutos desde GitHub Actions
+(gratis en repos públicos), lo que mantiene el servicio despierto sin depender de tu equipo.
+GitHub desactiva los workflows programados tras 60 días sin actividad en el repo: basta con
+entrar a **Actions → mantener API despierta → Run workflow** una vez al mes.
 
 ## Notas y límites
 
