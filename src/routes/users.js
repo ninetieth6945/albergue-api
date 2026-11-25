@@ -39,8 +39,9 @@ router.get(
   }),
 )
 
-// A partir de aquí, solo administradores.
-router.use(exigirAdmin)
+// A partir de aquí, solo administradores. El middleware se limita a /users para no
+// bloquear las rutas de otros routers (este router se monta en la raíz de la app).
+router.use('/users', exigirAdmin)
 
 // GET /users/get
 router.get(

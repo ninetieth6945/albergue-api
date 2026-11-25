@@ -5,7 +5,8 @@ import { ah, aEntero, paginacion, paginado, rangoFecha, unir } from '../lib/util
 
 const router = Router()
 
-router.use(exigirAdmin)
+// Limitado a /auditoria: el router se monta en la raíz de la app.
+router.use('/auditoria', exigirAdmin)
 
 // GET /auditoria
 router.get(

@@ -70,8 +70,9 @@ router.get(
   }),
 )
 
-// A partir de aquí todo requiere sesión con perfil.
-router.use(autenticar, exigirPerfil)
+// A partir de aquí todo requiere sesión con perfil. Limitado a /archivos para no
+// interceptar las rutas de otros routers (este router se monta en la raíz de la app).
+router.use('/archivos', autenticar, exigirPerfil)
 
 router.post(
   '/archivos',
