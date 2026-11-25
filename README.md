@@ -9,10 +9,14 @@ Reemplaza al backend original (que no estaba publicado en GitHub).
 | Qué | Dónde |
 |---|---|
 | API en producción | <https://albergue-api.onrender.com> (`/healthz`) |
-| Frontend | <https://albergueluisaaron.web.app> |
+| Frontend | <https://albergueluisaaron.org> (dominio propio) y <https://albergueluisaaron.web.app> |
 | Código de la API | <https://github.com/ninetieth6945/albergue-api> |
 | Panel de Render | <https://dashboard.render.com/web/srv-dc34qt68bjmc73eirlcg> |
 | Base de datos | Neon, proyecto `albergue`, rama `production`, base `neondb` |
+
+El dominio propio `albergueluisaaron.org` está conectado al mismo sitio de Firebase Hosting.
+Recuerda que **cualquier dominio nuevo** debe agregarse en dos lugares: `CORS_ORIGIN` (Render) y
+**Authentication → Settings → Authorized domains** (Firebase).
 
 El despliegue de la API es automático: cada `git push` a `main` reconstruye la imagen.
 Los secretos viven solo en Render (archivo local de referencia: `.env.produccion`, ignorado por git).
@@ -69,7 +73,7 @@ Hospitales, municipios/localidades, habitaciones y camas se capturan desde **Cat
 | `DATABASE_URL` | Sí | Cadena **pooled** de Neon (`-pooler` y `pgbouncer=true`). |
 | `FIREBASE_SERVICE_ACCOUNT` | Sí (producción) | JSON de la cuenta de servicio en **una sola línea**. También acepta `FIREBASE_SERVICE_ACCOUNT_BASE64`, `FIREBASE_SERVICE_ACCOUNT_FILE` o `GOOGLE_APPLICATION_CREDENTIALS`. |
 | `ADMIN_EMAILS` | Recomendada | Correos separados por coma que se crean como Administrador (nivel 3) la primera vez que inician sesión. |
-| `CORS_ORIGIN` | Recomendada | Orígenes permitidos, separados por coma. |
+| `CORS_ORIGIN` | Recomendada | Orígenes permitidos, separados por coma: `https://albergueluisaaron.web.app`, `https://albergueluisaaron.firebaseapp.com`, `https://albergueluisaaron.org`, `https://www.albergueluisaaron.org`. |
 | `ARCHIVOS_SECRET` | Recomendada | Secreto largo para firmar los enlaces de comprobantes. Si cambia, los enlaces viejos dejan de funcionar. |
 | `PORT` | No | Render la inyecta. Local: 3004. |
 | `ALLOW_ANONYMOUS` | No | Solo para desarrollo local sin Firebase. Nunca en producción. |
